@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.xml
+*.txt
+*.safetensors
+*.gguf
+*.bin
+*.ckpt
+*.pt
+*.json
