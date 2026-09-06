@@ -7,7 +7,7 @@
 ::set AMD_LOG_LEVEL=3 -> logging
 
 ::REM Activate the virtual environment
-call D:\VSCode\#Dev_Tools\venv\Scripts\activate.bat
+call .\Scripts\activate.bat
 
 ::REM Run Streamlit
 streamlit run main.py
