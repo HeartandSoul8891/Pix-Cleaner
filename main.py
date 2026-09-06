@@ -5,7 +5,7 @@ from ultralytics_tab import show_ultralytics_tab
 
 
 def main():
-    tab = st.tabs(["Cleaner (Ultralytics)", "Renamer", "Settings"])
+    tab = st.tabs(["🔍 Cleaner (Ultralytics)", "🔠 Renamer", "💡 Settings"])
 
     with tab[0]:
         show_ultralytics_tab()
