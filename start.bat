@@ -6,8 +6,45 @@
 ::set AMD_SERIALIZE_KERNEL=1 -> crash log
 ::set AMD_LOG_LEVEL=3 -> logging
 
-::REM Activate the virtual environment
-call .\Scripts\activate.bat
+@echo off
+title Cleaner - DEBUG
 
-::REM Run Streamlit
-streamlit run main.py
+echo ==========================================
+echo       CLEANER STARTUP
+echo ==========================================
+echo.
+echo Project folder:
+echo %~dp0
+echo.
+
+echo Activating virtual environment...
+call "%~dp0venv\Scripts\activate.bat"
+
+if errorlevel 1 (
+    echo.
+    echo !!! FAILED TO ACTIVATE VENV !!!
+    pause
+    exit /b 1
+)
+
+echo.
+echo Python:
+python --version
+
+echo.
+echo Python location:
+where python
+
+echo.
+echo Starting Streamlit...
+echo ==========================================
+echo.
+
+python -m streamlit run "%~dp0main.py"
+
+echo.
+echo ==========================================
+echo Streamlit exited.
+echo Exit code: %errorlevel%
+echo ==========================================
+pause
