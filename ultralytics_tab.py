@@ -2,6 +2,7 @@ import streamlit as st
 from pathlib import Path
 
 from settings_tab import load_settings
+from scripts.detect_backend import detect_backend
 
 from scripts.ultralytics_script import (
     init_root,
@@ -158,8 +159,66 @@ def show_ultralytics_tab():
             st.dataframe(
                 [{"ID": cid, "Class": name} for cid, name in names.items()],
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
             )
+
+    # ========================================================
+    # GPU / BATCH
+    # ========================================================
+
+    st.subheader("GPU / Batch")
+
+    try:
+        backend_info = detect_backend()
+        backend_name = str(
+            backend_info.get("backend", backend_info.get("name", "Unknown"))
+        )
+        device = str(backend_info.get("device", "unknown"))
+        gpu_name = str(
+            backend_info.get(
+                "gpu_name",
+                backend_info.get("device_name", ""),
+            )
+            or ""
+        )
+
+        gpu_active = device.lower().startswith("cuda")
+
+        gpu_col, batch_col = st.columns(2)
+
+        with gpu_col:
+            if gpu_active:
+                st.success("🟢 GPU acceleration available")
+            else:
+                st.warning("🟡 CPU inference")
+
+            st.caption(
+                f"Backend: `{backend_name}` • Device: `{device}`"
+            )
+
+            if gpu_name:
+                st.caption(f"GPU: `{gpu_name}`")
+
+        with batch_col:
+            batch_size = st.select_slider(
+                "Batch Size",
+                options=[1, 2, 4, 8, 16, 32],
+                value=8,
+                help=(
+                    "Number of images sent to YOLO at once. Higher values "
+                    "can increase GPU utilization but require more VRAM. "
+                    "Start at 8 and reduce it if you run out of VRAM."
+                ),
+            )
+
+    except Exception as e:
+        batch_size = 8
+        st.warning(f"Could not read GPU backend status: {e}")
+
+    st.caption(
+        f"Batching: `{batch_size}` image(s) per inference call. "
+        "The full dataset run uses this value."
+    )
 
     # ========================================================
     # INFERENCE SETTINGS
@@ -243,8 +302,8 @@ def show_ultralytics_tab():
         sample_size = st.number_input(
             "Sample size",
             min_value=1,
-            max_value=30,
-            value=6,
+            max_value=100,
+            value=32, # max size of the sample size for previewing
             step=1,
         )
 
@@ -282,6 +341,7 @@ def show_ultralytics_tab():
                         conf_threshold=conf_threshold,
                         imgsz=img_size,
                         sample_size=int(sample_size),
+                        batch_size=int(batch_size),
                         inference_mode=inference_mode,
                     )
 
@@ -309,9 +369,9 @@ def show_ultralytics_tab():
                 ):
                     with grid_cols[idx % 3]:
                         st.image(
-                            item["image"],
+                            item.get("annotated_image", item["image"]),
                             caption=item["filename"],
-                            use_container_width=True,
+                            width="stretch",
                         )
 
                         if item["is_discard"]:
@@ -319,11 +379,12 @@ def show_ultralytics_tab():
                                 "❌ DISCARD / DIRTY"
                             )
 
+                            detection_text = ", ".join(
+                                f"{d['class_name']} ({d['confidence']:.2f})"
+                                for d in item["detections"]
+                            )
                             st.caption(
-                                "Detected: "
-                                + ", ".join(
-                                    item["detections"]
-                                )
+                                f"Detected: {detection_text}"
                             )
 
                         else:
@@ -538,12 +599,12 @@ def show_ultralytics_tab():
 
             keep_path = (
                 input_path
-                / "cleaned"
+                / "non-detection"
             )
 
             discard_path = (
                 input_path
-                / "dirty"
+                / "detected"
             )
 
             full_model_path = (
@@ -563,13 +624,14 @@ def show_ultralytics_tab():
                         model_path=full_model_path,
                         conf_threshold=conf_threshold,
                         imgsz=img_size,
+                        batch_size=int(batch_size),
                         inference_mode=inference_mode,
                     )
 
                     st.success(
                         "Sorting complete! "
-                        f"Moved {kept} images to 'cleaned' "
-                        f"and {discarded} images to 'dirty'."
+                        f"Moved {kept} images to 'non-detection' "
+                        f"and {discarded} images to 'detected'."
                     )
 
                 except Exception as e:
