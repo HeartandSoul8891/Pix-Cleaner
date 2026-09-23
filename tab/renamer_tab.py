@@ -1,6 +1,6 @@
 import streamlit as st
 import os as os
-from settings_tab import load_settings
+from tab.settings_tab import load_settings
 from scripts.renamer_script import list_files_in_folder, rename_files
 
 # Function to display the renamer tab
